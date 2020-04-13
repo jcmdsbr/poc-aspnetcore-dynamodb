@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2;
@@ -24,11 +25,27 @@ namespace POC.DynamoDB.Api.Infra.Repositories
             // Create a filter base a scan condition
             var opConfig = new DynamoDBOperationConfig {QueryFilter = new List<ScanCondition>()};
 
-            opConfig.QueryFilter.Add(new ScanCondition(nameof(Product.Description), ScanOperator.Contains,
-                filters.Description));
+            if (!string.IsNullOrWhiteSpace(filters.Description))
+                opConfig.QueryFilter.Add(new ScanCondition(nameof(Product.Description), ScanOperator.Contains,
+                    filters.Description));
 
-            opConfig.QueryFilter.Add(new ScanCondition(nameof(Product.ProductType), ScanOperator.Contains,
-                filters.ProductType));
+            if (filters.ProductType != ProductType.None)
+                opConfig.QueryFilter.Add(new ScanCondition(nameof(Product.ProductType), ScanOperator.Contains,
+                    filters.ProductType));
+
+
+            if (!filters.IncludedInactive)
+                opConfig.QueryFilter.Add(new ScanCondition(nameof(Product.Status), ScanOperator.Equal, Status.Active));
+
+
+            var sortKey = new List<string>();
+
+            if (filters.ValidityStart.HasValue)
+                sortKey.Add(filters.ValidityStart.Value.ToShortDateString());
+
+            if (filters.ValidityEnd.HasValue)
+                sortKey.Add(filters.ValidityEnd.Value.ToShortDateString());
+
 
             // When partition key exists !
             if (!string.IsNullOrWhiteSpace(filters.Manufacturer))
@@ -38,11 +55,11 @@ namespace POC.DynamoDB.Api.Infra.Repositories
 
                 queryFilter.AddCondition(nameof(Product.PartitionKey), QueryOperator.Equal, filters.Manufacturer);
 
-                queryFilter.AddCondition(nameof(Product.SortKey), QueryOperator.Between,
-                    filters.ValidityStart.ToShortDateString(), filters.ValidityEnd.ToShortDateString(),
-                    includedInactive);
+                if (sortKey.Any())
+                    queryFilter.AddCondition(nameof(Product.SortKey), QueryOperator.BeginsWith,
+                        string.Join("#", sortKey));
 
-                // Use scan condition and query filter (filter by composite key)
+                // Use scan condition and query filter (filter by primary key)
                 return await Context.FromQueryAsync<Product>(new QueryOperationConfig
                 {
                     Filter = queryFilter,
@@ -50,13 +67,10 @@ namespace POC.DynamoDB.Api.Infra.Repositories
                 }, opConfig).GetRemainingAsync(cancellationToken);
             }
 
-            // Table scan !! scan condition shouldn't contain a composite key
-
-            // query filters use in a filter by composite key
+            // Table scan !! scan condition shouldn't contain a primary key
             var scanFilter = new ScanFilter();
 
-            scanFilter.AddCondition(nameof(Product.SortKey), ScanOperator.Contains,
-                filters.ValidityStart.ToShortDateString(), filters.ValidityEnd.ToShortDateString(), includedInactive);
+            scanFilter.AddCondition(nameof(Product.SortKey), ScanOperator.BeginsWith, string.Join("#", sortKey));
 
             return await Context.FromScanAsync<Product>(new ScanOperationConfig
             {

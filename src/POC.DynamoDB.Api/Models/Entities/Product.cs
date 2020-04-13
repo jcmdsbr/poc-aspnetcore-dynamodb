@@ -1,27 +1,39 @@
 ﻿using System;
 using POC.DynamoDB.Api.Models.Fixed;
-using POC.DynamoDB.Api.Models.ValueObjects;
 
 namespace POC.DynamoDB.Api.Models.Entities
 {
     public class Product : Entity
     {
-        public Product(string description, string manufacturer, ProductType productType, Validity validity)
+        public Product()
         {
-            Id = Guid.NewGuid();
+        }
+
+        public Product(Guid id, string description, string manufacturer, ProductType productType,
+            DateTime validityStart, DateTime validityEnd)
+        {
+            Id = id;
             Manufacturer = manufacturer;
             Description = description;
             Status = Status.Active;
             ProductType = productType;
-            Validity = validity;
+            ValidityStart = validityStart;
+            ValidityEnd = validityEnd;
             PartitionKey = manufacturer;
-            SortKey = $"{validity.Start.ToShortDateString()}#{validity.End.ToShortDateString()}#{Id}#{Status}";
+            SortKey = $"{validityStart.ToShortDateString()}#{validityEnd.ToShortDateString()}#{Id}";
+        }
+
+        public Product(string description, string manufacturer, ProductType productType, DateTime validityStart,
+            DateTime validityEnd)
+            : this(Guid.NewGuid(), description, manufacturer, productType, validityStart, validityEnd)
+        {
         }
 
         public Guid Id { get; set; }
         public string Description { get; set; }
         public string Manufacturer { get; set; }
-        public Validity Validity { get; set; }
+        public DateTime ValidityStart { get; }
+        public DateTime ValidityEnd { get; }
         public Status Status { get; set; }
         public ProductType ProductType { get; set; }
         public sealed override string PartitionKey { get; set; }

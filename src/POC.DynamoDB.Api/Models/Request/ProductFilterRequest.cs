@@ -13,9 +13,9 @@ namespace POC.DynamoDB.Api.Models.Request
 
         public bool IncludedInactive { get; set; }
 
-        public DateTime ValidityStart { get; set; } = DateTime.MinValue;
+        public DateTime? ValidityStart { get; set; }
 
-        public DateTime ValidityEnd { get; set; } = DateTime.MaxValue;
+        public DateTime? ValidityEnd { get; set; }
 
         public int Take { get; set; } = 10;
 

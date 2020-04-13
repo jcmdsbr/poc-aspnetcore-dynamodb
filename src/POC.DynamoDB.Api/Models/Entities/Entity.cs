@@ -9,6 +9,6 @@ namespace POC.DynamoDB.Api.Models.Entities
 
         [DynamoDBRangeKey] public abstract string SortKey { get; set; }
 
-        [DynamoDBVersion] public int NumberOfVersion { get; set; }
+        [DynamoDBVersion] public int? NumberOfVersion { get; set; }
     }
 }

@@ -1,14 +1,16 @@
+using System;
+using Amazon;
 using Amazon.DynamoDBv2;
-using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using POC.DynamoDB.Api.Background;
+using Microsoft.OpenApi.Models;
 using POC.DynamoDB.Api.Infra.Contracts;
 using POC.DynamoDB.Api.Infra.Repositories;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 namespace POC.DynamoDB.Api
 {
@@ -25,20 +27,28 @@ namespace POC.DynamoDB.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services
+                .AddSwaggerGen(c =>
+                {
+                    c.UseInlineDefinitionsForEnums();
+                    c.SwaggerDoc("v1",
+                        new OpenApiInfo
+                        {
+                            Title = "POC DynamoDB",
+                            Version = "v1",
+                            Description = ""
+                        });
+                    c.MapType<Guid>(() => new OpenApiSchema {Type = "string", Format = "uuid"});
+                });
 
             services.AddScoped(typeof(IBaseRepository<>), typeof(DynamoDbRepository<>));
 
             services.AddScoped<IProductRepository, ProductRepository>();
 
-            services.AddHostedService<SeedBackgroundService>();
-
-            services.AddDefaultAWSOptions(SetAwsCredentials(Configuration.GetAWSOptions()));
-
-            services.AddScoped<IAmazonDynamoDB>(x => new AmazonDynamoDBClient(new AmazonDynamoDBConfig
-            {
-                ServiceURL = "http://localhost:4569",
-                UseHttp = true
-            }));
+            var config = new AmazonDynamoDBConfig
+                {RegionEndpoint = RegionEndpoint.SAEast1, ServiceURL = Configuration["AWS:ConnectionString"]};
+            var credentials = new BasicAWSCredentials(Configuration["AWS:AccessKey"], Configuration["AWS:SecretKey"]);
+            services.AddSingleton<IAmazonDynamoDB>(new AmazonDynamoDBClient(credentials, config));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,17 +60,17 @@ namespace POC.DynamoDB.Api
 
             app.UseRouting();
 
-            app.UseAuthorization();
+            app.UseSwagger();
+
+            app.UseSwaggerUI(s =>
+            {
+                s.SwaggerEndpoint("v1/swagger.json", "POC.DynamoDB.Api v1.0");
+                s.EnableFilter();
+                s.RoutePrefix = "swagger";
+                s.DocExpansion(DocExpansion.None);
+            });
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
-        }
-
-        public AWSOptions SetAwsCredentials(AWSOptions awsOptions)
-        {
-            awsOptions.Credentials =
-                new BasicAWSCredentials(Configuration["AWS:AccessKey"], Configuration["AWS:SecretKey"]);
-
-            return awsOptions;
         }
     }
 }

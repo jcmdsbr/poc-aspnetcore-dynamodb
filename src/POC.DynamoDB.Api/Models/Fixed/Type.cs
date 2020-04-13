@@ -2,6 +2,7 @@
 {
     public enum ProductType
     {
+        None,
         Food,
         HomeAppliances,
         Electronics,
