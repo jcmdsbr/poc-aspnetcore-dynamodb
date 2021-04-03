@@ -1,21 +1,22 @@
-# POC DynamoDb
-
-## Descrição:
+# POC DynamoDb :sunglasses:
 
 - POC para estudos de como funciona o dynamodb.
 
+## Estrelinha! :star:
 
-## Dependências Externas:
+Se esse projeto te ajudou em alguma coisa, taquele pau na estrelinha \o/
+
+## Dependências Externas ❗
 
 - Necessario conta no AWS
 
 
-## Variáveis de ambiente:
+## Variáveis de ambiente ❗
 
 - Configurar as variáveis de ambiente do aws no arquivo appsettings.
 
 
-## Anotações
+## Anotações 📑
 
 - Funciona com base no conceito de tabelas que funcionam como um catalogo de itens ou agregado de itens e um item é um catalogo/agregado de atributos.
 
